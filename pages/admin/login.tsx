@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/router';
 
-const ADMIN_PASSWORD = '1234'; // ✅ 간단한 하드코딩 비밀번호
+const ADMIN_PASSWORD = 'maru1234'; // ✅ 간단한 하드코딩 비밀번호
 
 export default function AdminLogin() {
   const [password, setPassword] = useState('');
