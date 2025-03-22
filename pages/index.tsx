@@ -1,117 +1,336 @@
-import Head from "next/head";
-import Image from "next/image";
-import { Geist, Geist_Mono } from "next/font/google";
-import styles from "@/styles/Home.module.css";
+import { useEffect, useState } from "react";
+import {
+  getDocs,
+  collection,
+  doc,
+  getDoc,
+  addDoc,
+  updateDoc,
+  setDoc,
+  arrayUnion,
+  arrayRemove,
+  deleteDoc,
+} from "firebase/firestore";
+import { db } from "../firebaseConfig";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
+const getToday = () => {
+  const now = new Date();
+  const offset = now.getTimezoneOffset() * 60000;
+  const localDate = new Date(now.getTime() - offset);
+  return localDate.toISOString().split("T")[0];
+};
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
+interface User {
+  id: string;
+  name: string;
+}
 
-export default function Home() {
+const rainbowColors = [
+  "bg-red-300",
+  "bg-orange-300",
+  "bg-yellow-300",
+  "bg-lime-300",
+  "bg-cyan-300",
+  "bg-blue-300",
+  "bg-purple-300",
+];
+
+export default function AttendancePage() {
+  const [users, setUsers] = useState<User[]>([]);
+  const [attendedIds, setAttendedIds] = useState<string[]>([]);
+  const [newName, setNewName] = useState("");
+  const [searchTerm, setSearchTerm] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [submittingId, setSubmittingId] = useState<string | null>(null);
+  const [top7Map, setTop7Map] = useState<Record<string, number>>({});
+  const [currentPage, setCurrentPage] = useState(1);
+  const usersPerPage = 10;
+
+  const today = getToday();
+
+  useEffect(() => {
+    const fetchData = async () => {
+      setLoading(true);
+
+      const userSnapshot = await getDocs(collection(db, "users"));
+      const userList: User[] = [];
+      userSnapshot.forEach((docSnap) => {
+        userList.push({
+          id: docSnap.id,
+          name: docSnap.data().name,
+        });
+      });
+      setUsers(userList);
+
+      const attendanceDoc = await getDoc(doc(db, "attendance", today));
+      if (attendanceDoc.exists()) {
+        const data = attendanceDoc.data();
+        setAttendedIds(data.users || []);
+      } else {
+        setAttendedIds([]);
+      }
+
+      const attendanceSnapshot = await getDocs(collection(db, "attendance"));
+      const countMap: Record<string, number> = {};
+      attendanceSnapshot.forEach((docSnap) => {
+        const userIds: string[] = docSnap.data().users || [];
+        userIds.forEach((userId) => {
+          countMap[userId] = (countMap[userId] || 0) + 1;
+        });
+      });
+
+      const sorted = Object.entries(countMap)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 7);
+
+      const topMap: Record<string, number> = {};
+      sorted.forEach(([userId], index) => {
+        topMap[userId] = index;
+      });
+      setTop7Map(topMap);
+
+      setLoading(false);
+    };
+
+    fetchData();
+  }, [today]);
+
+  const handleAttendance = async (userId: string) => {
+    setSubmittingId(userId);
+    const attendanceRef = doc(db, "attendance", today);
+    const attendanceDoc = await getDoc(attendanceRef);
+
+    if (attendanceDoc.exists()) {
+      await updateDoc(attendanceRef, {
+        users: arrayUnion(userId),
+      });
+    } else {
+      await setDoc(attendanceRef, {
+        users: [userId],
+      });
+    }
+
+    setAttendedIds((prev) => [...prev, userId]);
+    setSubmittingId(null);
+  };
+
+  const removeAttendance = async (userId: string) => {
+    const attendanceRef = doc(db, "attendance", today);
+    await updateDoc(attendanceRef, {
+      users: arrayRemove(userId),
+    });
+    setAttendedIds((prev) => prev.filter((id) => id !== userId));
+  };
+
+  const deleteUser = async (userId: string) => {
+    const confirm = window.confirm("정말 이 사용자를 삭제할까요?");
+    if (!confirm) return;
+
+    await deleteDoc(doc(db, "users", userId));
+    await updateDoc(doc(db, "attendance", today), {
+      users: arrayRemove(userId),
+    }).catch(() => {});
+
+    setUsers((prev) => prev.filter((u) => u.id !== userId));
+    setAttendedIds((prev) => prev.filter((id) => id !== userId));
+  };
+
+  const handleAddUser = async () => {
+    const trimmed = newName.trim();
+    if (!trimmed) {
+      alert("이름을 입력하세요.");
+      return;
+    }
+
+    const existing = users.find((u) => u.name === trimmed);
+    if (existing) {
+      alert("이미 등록된 이름입니다.");
+      return;
+    }
+
+    const docRef = await addDoc(collection(db, "users"), {
+      name: trimmed,
+      paid: false,
+    });
+
+    await handleAttendance(docRef.id);
+    setUsers((prev) => [...prev, { id: docRef.id, name: trimmed }]);
+    setNewName("");
+    setSearchTerm("");
+  };
+
+  const filteredUsers = users.filter((user) =>
+    user.name.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const totalPages = Math.ceil(filteredUsers.length / usersPerPage);
+  const startIndex = (currentPage - 1) * usersPerPage;
+  const paginatedUsers = searchTerm
+    ? filteredUsers
+    : filteredUsers.slice(startIndex, startIndex + usersPerPage);
+
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [currentPage]);
+
   return (
-    <>
-      <Head>
-        <title>Create Next App</title>
-        <meta name="description" content="Generated by create next app" />
-        <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <link rel="icon" href="/favicon.ico" />
-      </Head>
-      <div
-        className={`${styles.page} ${geistSans.variable} ${geistMono.variable}`}
-      >
-        <main className={styles.main}>
-          <Image
-            className={styles.logo}
-            src="/next.svg"
-            alt="Next.js logo"
-            width={180}
-            height={38}
-            priority
-          />
-          <ol>
-            <li>
-              Get started by editing <code>pages/index.tsx</code>.
-            </li>
-            <li>Save and see your changes instantly.</li>
-          </ol>
+    <main className="max-w-lg mx-auto px-4 py-6">
+      <h1 className="text-3xl font-bold text-center text-blue-600 mb-4">
+        📋 출석 체크
+      </h1>
 
-          <div className={styles.ctas}>
-            <a
-              className={styles.primary}
-              href="https://vercel.com/new?utm_source=create-next-app&utm_medium=default-template&utm_campaign=create-next-app"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              <Image
-                className={styles.logo}
-                src="/vercel.svg"
-                alt="Vercel logomark"
-                width={20}
-                height={20}
-              />
-              Deploy now
-            </a>
-            <a
-              href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=default-template&utm_campaign=create-next-app"
-              target="_blank"
-              rel="noopener noreferrer"
-              className={styles.secondary}
-            >
-              Read our docs
-            </a>
-          </div>
-        </main>
-        <footer className={styles.footer}>
-          <a
-            href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=default-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              aria-hidden
-              src="/file.svg"
-              alt="File icon"
-              width={16}
-              height={16}
-            />
-            Learn
-          </a>
-          <a
-            href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=default-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              aria-hidden
-              src="/window.svg"
-              alt="Window icon"
-              width={16}
-              height={16}
-            />
-            Examples
-          </a>
-          <a
-            href="https://nextjs.org?utm_source=create-next-app&utm_medium=default-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              aria-hidden
-              src="/globe.svg"
-              alt="Globe icon"
-              width={16}
-              height={16}
-            />
-            Go to nextjs.org →
-          </a>
-        </footer>
+      <div className="bg-yellow-100 text-center font-bold text-gray-800 p-3 rounded mb-0 whitespace-pre-line shadow">
+        📢 공지사항
       </div>
-    </>
+
+      <div className="bg-yellow-100 text-left font-bold text-gray-800 p-3 rounded mb-6 whitespace-pre-line shadow">
+        ❤ 마루 스포츠 출석부입니당{"\n"}
+        🧡 셔틀콕 제출 & 입장료 입금 후 게임 하기{"\n"}
+        💛 국민은행 415602 96 116296 (송호영)
+      </div>
+
+      {/* 이름 검색 */}
+      <h3 className="font-semibold mb-2">
+        🙋‍♂️ 검색해서 빠르게 자기 이름 찾고 게임 ㄱㄱ
+      </h3>
+      <input
+        type="text"
+        value={searchTerm}
+        onChange={(e) => setSearchTerm(e.target.value)}
+        placeholder="이름 검색"
+        className="w-full border border-gray-300 rounded px-4 py-2 mb-4 focus:outline-none focus:ring-2 focus:ring-blue-400"
+      />
+
+      {/* 이름 등록 */}
+      <div className="mb-6">
+        <h3 className="font-semibold mb-2">
+          🙋‍♀️ 처음 오셨거나 이름이 없으면 아래에서 추가!
+        </h3>
+        <input
+          type="text"
+          value={newName}
+          onChange={(e) => setNewName(e.target.value)}
+          placeholder="이름 입력"
+          className="w-full border border-gray-300 rounded px-4 py-2 mb-2 focus:outline-none focus:ring-2 focus:ring-blue-400 dark:bg-gray-800 dark:text-white"
+        />
+        <button
+          onClick={handleAddUser}
+          className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700"
+        >
+          이름 등록 후 출석하기
+        </button>
+      </div>
+
+      {loading ? (
+        <p className="text-center text-gray-500">로딩 중...</p>
+      ) : (
+        <>
+          <ul className="space-y-3">
+            {paginatedUsers.map((user) => {
+              const isAttended = attendedIds.includes(user.id);
+              const rank = top7Map[user.id];
+              const bgColor =
+                rank !== undefined ? rainbowColors[rank] : "bg-gray-100";
+
+              return (
+                <li
+                  key={user.id}
+                  className={`flex justify-between items-center p-3 rounded shadow ${bgColor} dark:bg-gray-800 dark:text-white`}
+                >
+                  <span className="font-medium">{user.name}</span>
+                  <div className="flex gap-2">
+                    {isAttended ? (
+                      <button
+                        onClick={() => removeAttendance(user.id)}
+                        className="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600"
+                      >
+                        출석 취소
+                      </button>
+                    ) : (
+                      <button
+                        disabled={submittingId === user.id}
+                        onClick={() => handleAttendance(user.id)}
+                        className="bg-green-500 text-white px-3 py-1 rounded hover:bg-green-600 disabled:opacity-50"
+                      >
+                        출석
+                      </button>
+                    )}
+                    <button
+                      onClick={() => deleteUser(user.id)}
+                      className="bg-gray-400 text-white px-3 py-1 rounded hover:bg-gray-500"
+                    >
+                      🗑
+                    </button>
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+
+          {/* 페이지네이션 */}
+          {!searchTerm && totalPages > 1 && (
+            <div className="flex justify-center mt-6 gap-2 flex-wrap">
+              <button
+                onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
+                disabled={currentPage === 1}
+                className="px-3 py-1 rounded bg-gray-200 hover:bg-gray-300 disabled:opacity-50"
+              >
+                ◀ 이전
+              </button>
+
+              {[...Array(totalPages)].map((_, i) => (
+                <button
+                  key={i}
+                  onClick={() => setCurrentPage(i + 1)}
+                  className={`px-3 py-1 rounded ${
+                    currentPage === i + 1
+                      ? "bg-blue-500 text-white"
+                      : "bg-gray-200 hover:bg-gray-300"
+                  }`}
+                >
+                  {i + 1}
+                </button>
+              ))}
+
+              <button
+                onClick={() =>
+                  setCurrentPage((p) => Math.min(p + 1, totalPages))
+                }
+                disabled={currentPage === totalPages}
+                className="px-3 py-1 rounded bg-gray-200 hover:bg-gray-300 disabled:opacity-50"
+              >
+                다음 ▶
+              </button>
+            </div>
+          )}
+        </>
+      )}
+
+      <footer className="mt-10 pt-6 border-t text-center space-x-4">
+        <button
+          onClick={() => (window.location.href = "/today")}
+          className="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700"
+        >
+          📅 오늘 출석자
+        </button>
+
+        <button
+          onClick={() => (window.location.href = "/ranking")}
+          className="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700"
+        >
+          🏆 출석 랭킹
+        </button>
+
+        <button
+          onClick={() => (window.location.href = "/admin/login")}
+          className="bg-gray-700 text-white px-4 py-2 rounded hover:bg-gray-800"
+        >
+          🔐 관리자
+        </button>
+        <p className="text-xs text-gray-400 dark:text-gray-500 mt-6 text-right">
+          Made by <span className="font-semibold">🏸Byeong Heon</span> v1.0.0
+        </p>
+      </footer>
+    </main>
   );
 }
