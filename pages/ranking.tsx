@@ -32,7 +32,7 @@ export default function RankingPage() {
   const [range, setRange] = useState<RangeType>("all");
   const [loading, setLoading] = useState(true);
 
-  const today = getToday();
+  // const today = getToday();
   const rangeStartDate =
     range === "7days"
       ? getDateNDaysAgo(7)
