@@ -23,7 +23,7 @@ interface User {
 export default function PaymentsPage() {
   const [users, setUsers] = useState<User[]>([]);
   const [payMap, setPayMap] = useState<Record<string, boolean>>({});
-  const [today, setToday] = useState(getToday());
+  const [today] = useState(getToday());
 
   useEffect(() => {
     const fetchData = async () => {
