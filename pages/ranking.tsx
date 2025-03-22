@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { collection, getDocs, doc, getDoc } from "firebase/firestore";
+import { collection, getDocs } from "firebase/firestore";
 import { db } from "../firebaseConfig";
 import { useRouter } from "next/router";
 
@@ -9,13 +9,6 @@ interface User {
 }
 
 type RangeType = "all" | "7days" | "30days";
-
-const getToday = () => {
-  const now = new Date();
-  const offset = now.getTimezoneOffset() * 60000;
-  const localDate = new Date(now.getTime() - offset);
-  return localDate.toISOString().split("T")[0];
-};
 
 const getDateNDaysAgo = (n: number) => {
   const now = new Date();
@@ -32,7 +25,6 @@ export default function RankingPage() {
   const [range, setRange] = useState<RangeType>("all");
   const [loading, setLoading] = useState(true);
 
-  // const today = getToday();
   const rangeStartDate =
     range === "7days"
       ? getDateNDaysAgo(7)
