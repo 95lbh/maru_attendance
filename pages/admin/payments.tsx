@@ -1,13 +1,12 @@
 import { useEffect, useState } from 'react';
+import { db } from '../../firebaseConfig';
 import {
   collection,
-  getDocs,
-  getDoc,
   doc,
+  getDoc,
+  getDocs,
   updateDoc,
-  // setDoc,
 } from 'firebase/firestore';
-import { db } from '../../firebaseConfig';
 
 const getToday = () => {
   const now = new Date();
@@ -16,88 +15,89 @@ const getToday = () => {
   return localDate.toISOString().split('T')[0];
 };
 
+interface User {
+  id: string;
+  name: string;
+}
+
 export default function PaymentsPage() {
-  const [users, setUsers] = useState<{ id: string; name: string }[]>([]);
-  const [paid, setPaid] = useState<Record<string, boolean>>({});
-  const [date, setDate] = useState(getToday());
-  const [loading, setLoading] = useState(true);
+  const [users, setUsers] = useState<User[]>([]);
+  const [payMap, setPayMap] = useState<Record<string, boolean>>({});
+  const [today, setToday] = useState(getToday());
 
   useEffect(() => {
-    const fetchUsersAndPayments = async () => {
-      setLoading(true);
-
+    const fetchData = async () => {
       const userSnap = await getDocs(collection(db, 'users'));
-      const userList: { id: string; name: string }[] = [];
-      userSnap.forEach((doc) => {
-        userList.push({ id: doc.id, name: doc.data().name });
+      const userList: User[] = [];
+      userSnap.forEach((docSnap) => {
+        userList.push({ id: docSnap.id, name: docSnap.data().name });
       });
 
-      const attendSnap = await getDoc(doc(db, 'attendance', date));
-      const ids: string[] = attendSnap.exists()
-        ? attendSnap.data().users || []
-        : [];
+      const attendSnap = await getDoc(doc(db, 'attendance', today));
+      const ids = attendSnap.exists() ? attendSnap.data().users || [] : [];
 
       const payMap: Record<string, boolean> = {};
       ids.forEach((id: string) => {
-        payMap[id] = attendSnap.data().paid?.[id] || false;
+        payMap[id] = attendSnap.data()?.paid?.[id] ?? false;
       });
 
       setUsers(userList.filter((u) => ids.includes(u.id)));
-      setPaid(payMap);
-      setLoading(false);
+      setPayMap(payMap);
     };
 
-    fetchUsersAndPayments();
-  }, [date]);
+    fetchData();
+  }, [today]);
 
-  const togglePaid = async (userId: string) => {
-    const ref = doc(db, 'attendance', date);
-    await updateDoc(ref, {
-      [`paid.${userId}`]: !paid[userId],
+  const togglePayment = async (userId: string) => {
+    const current = payMap[userId];
+    const updated = { ...payMap, [userId]: !current };
+
+    await updateDoc(doc(db, 'attendance', today), {
+      paid: updated,
     });
-    setPaid((prev) => ({ ...prev, [userId]: !prev[userId] }));
+
+    setPayMap(updated);
   };
 
   return (
-    <main className="max-w-xl mx-auto px-4 py-6">
-      <h1 className="text-2xl font-bold text-center text-green-700 mb-6">
-        💰 입장료 납부 관리
+    <main className="max-w-lg mx-auto px-4 py-6">
+      <h1 className="text-2xl font-bold mb-4 text-center text-green-600">
+        💸 오늘 입장료 확인
       </h1>
 
-      <div className="flex justify-center mb-6">
-        <input
-          type="date"
-          value={date}
-          onChange={(e) => setDate(e.target.value)}
-          className="border border-gray-300 px-4 py-2 rounded shadow-sm focus:outline-none focus:ring-2 focus:ring-green-400"
-        />
-      </div>
-
-      {loading ? (
-        <p className="text-center text-gray-500">로딩 중...</p>
-      ) : users.length === 0 ? (
-        <p className="text-center text-gray-400">출석한 사용자가 없습니다.</p>
+      {users.length === 0 ? (
+        <p className="text-center text-gray-500">출석자가 없습니다.</p>
       ) : (
         <ul className="space-y-3">
           {users.map((user) => (
             <li
               key={user.id}
-              className="flex justify-between items-center bg-white p-4 rounded shadow"
+              className="flex justify-between items-center p-3 bg-white dark:bg-gray-800 shadow rounded"
             >
               <span className="font-medium">{user.name}</span>
-              <label className="flex items-center gap-2 text-sm">
-                <input
-                  type="checkbox"
-                  checked={paid[user.id] || false}
-                  onChange={() => togglePaid(user.id)}
-                  className="w-4 h-4 accent-green-600"
-                />
-                납부
-              </label>
+              <button
+                onClick={() => togglePayment(user.id)}
+                className={`px-3 py-1 rounded text-white ${
+                  payMap[user.id]
+                    ? 'bg-green-500 hover:bg-green-600'
+                    : 'bg-gray-400 hover:bg-gray-500'
+                }`}
+              >
+                {payMap[user.id] ? '✅ 납부' : '❌ 미납'}
+              </button>
             </li>
           ))}
         </ul>
       )}
+
+      <footer className="mt-10 pt-6 border-t text-center">
+        <button
+          onClick={() => (window.location.href = '/')}
+          className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+        >
+          🏠 메인으로
+        </button>
+      </footer>
     </main>
   );
 }
