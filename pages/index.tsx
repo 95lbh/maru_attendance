@@ -45,6 +45,13 @@ export default function AttendancePage() {
   const [top7Map, setTop7Map] = useState<Record<string, number>>({});
   const [currentPage, setCurrentPage] = useState(1);
   const usersPerPage = 10;
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  useEffect(() => {
+    if (typeof window !== "undefined" && localStorage.getItem("admin") === "true") {
+      setIsAdmin(true);
+    }
+  }, []);
 
   const today = getToday();
 
@@ -123,16 +130,30 @@ export default function AttendancePage() {
   };
 
   const deleteUser = async (userId: string) => {
-    const confirm = window.confirm("정말 이 사용자를 삭제할까요?");
-    if (!confirm) return;
+    const confirmDelete = window.confirm("정말 이 사용자를 삭제할까요?");
+    if (!confirmDelete) return;
 
-    await deleteDoc(doc(db, "users", userId));
-    await updateDoc(doc(db, "attendance", today), {
-      users: arrayRemove(userId),
-    }).catch(() => {});
+    try {
+      await deleteDoc(doc(db, "users", userId));
 
-    setUsers((prev) => prev.filter((u) => u.id !== userId));
-    setAttendedIds((prev) => prev.filter((id) => id !== userId));
+      const attendanceSnapshot = await getDocs(collection(db, "attendance"));
+      const batchUpdates = attendanceSnapshot.docs.map(async (snap) => {
+        const ref = doc(db, "attendance", snap.id);
+        await updateDoc(ref, {
+          users: arrayRemove(userId),
+        });
+      });
+
+      await Promise.all(batchUpdates);
+
+      setUsers((prev) => prev.filter((u) => u.id !== userId));
+      setAttendedIds((prev) => prev.filter((id) => id !== userId));
+
+      alert("사용자가 삭제되었습니다.");
+    } catch (error) {
+      console.error("삭제 오류:", error);
+      alert("사용자 삭제 중 오류가 발생했습니다.");
+    }
   };
 
   const handleAddUser = async () => {
@@ -189,7 +210,6 @@ export default function AttendancePage() {
         💛 국민은행 415602 96 116296 (송호영)
       </div>
 
-      {/* 이름 검색 */}
       <h3 className="font-semibold mb-2">
         🙋‍♂️ 검색해서 빠르게 자기 이름 찾고 게임 ㄱㄱ
       </h3>
@@ -201,7 +221,6 @@ export default function AttendancePage() {
         className="w-full border border-gray-300 rounded px-4 py-2 mb-4 focus:outline-none focus:ring-2 focus:ring-blue-400"
       />
 
-      {/* 이름 등록 */}
       <div className="mb-6">
         <h3 className="font-semibold mb-2">
           🙋‍♀️ 처음 오셨거나 이름이 없으면 아래에서 추가!
@@ -255,19 +274,20 @@ export default function AttendancePage() {
                         출석
                       </button>
                     )}
-                    <button
-                      onClick={() => deleteUser(user.id)}
-                      className="bg-gray-400 text-white px-3 py-1 rounded hover:bg-gray-500"
-                    >
-                      🗑
-                    </button>
+                    {isAdmin && (
+                      <button
+                        onClick={() => deleteUser(user.id)}
+                        className="bg-gray-400 text-white px-3 py-1 rounded hover:bg-gray-500"
+                      >
+                        🗑
+                      </button>
+                    )}
                   </div>
                 </li>
               );
             })}
           </ul>
 
-          {/* 페이지네이션 */}
           {!searchTerm && totalPages > 1 && (
             <div className="flex justify-center mt-6 gap-2 flex-wrap">
               <button
@@ -327,6 +347,16 @@ export default function AttendancePage() {
         >
           🔐 관리자
         </button>
+
+        {isAdmin && (
+          <button
+            onClick={() => (window.location.href = "/admin/payments")}
+            className="bg-amber-600 text-white px-4 py-2 rounded hover:bg-amber-700"
+          >
+            💰 입장료 관리
+          </button>
+        )}
+
         <p className="text-xs text-gray-400 dark:text-gray-500 mt-6 text-right">
           Made by <span className="font-semibold">🏸Byeong Heon</span> v1.0.0
         </p>

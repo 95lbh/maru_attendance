@@ -20,7 +20,7 @@ export default function Layout({ children }: { children: ReactNode }) {
     localStorage.setItem('theme', next ? 'dark' : 'light');
     document.documentElement.classList.toggle('dark', next);
   };
-
+  
   return (
     <div className="min-h-screen bg-gray-50 text-gray-800 dark:bg-gray-900 dark:text-gray-100 transition-colors duration-300">
       <header className="p-4 border-b mb-6 flex justify-between items-center max-w-4xl mx-auto">
