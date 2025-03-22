@@ -326,7 +326,7 @@ export default function AttendancePage() {
         </>
       )}
 
-      <footer className="mt-10 pt-6 border-t text-center space-x-4">
+<footer className="mt-10 pt-6 border-t text-center space-x-4">
         <button
           onClick={() => (window.location.href = "/today")}
           className="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700"
@@ -341,21 +341,23 @@ export default function AttendancePage() {
           🏆 출석 랭킹
         </button>
 
-        <button
-          onClick={() => (window.location.href = "/admin/login")}
-          className="bg-gray-700 text-white px-4 py-2 rounded hover:bg-gray-800"
-        >
-          🔐 관리자
-        </button>
-
-        {isAdmin && (
+        <div className="mt-4 space-x-4">
           <button
-            onClick={() => (window.location.href = "/admin/payments")}
-            className="bg-amber-600 text-white px-4 py-2 rounded hover:bg-amber-700"
+            onClick={() => (window.location.href = "/admin/login")}
+            className="bg-gray-700 text-white px-4 py-2 rounded hover:bg-gray-800"
           >
-            💰 입장료 관리
+            🔐 관리자
           </button>
-        )}
+
+          {isAdmin && (
+            <button
+              onClick={() => (window.location.href = "/admin/payments")}
+              className="bg-amber-600 text-white px-4 py-2 rounded hover:bg-amber-700"
+            >
+              💰 입장료 관리
+            </button>
+          )}
+        </div>
 
         <p className="text-xs text-gray-400 dark:text-gray-500 mt-6 text-right">
           Made by <span className="font-semibold">🏸Byeong Heon</span> v1.0.0
