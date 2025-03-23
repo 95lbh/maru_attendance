@@ -14,11 +14,12 @@ import {
   orderBy,
 } from "firebase/firestore";
 import { db } from "../firebaseConfig";
+import type { Timestamp } from "firebase/firestore";
 
 interface User {
   id: string;
   name: string;
-  createdAt?: any;
+  createdAt?: Timestamp;
 }
 
 const getToday = () => {
