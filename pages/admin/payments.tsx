@@ -92,7 +92,7 @@ export default function PaymentsPage() {
   };
 
   const handleDateChange = (date: string) => {
-    const formatted = date.toISOString().split("T")[0];
+    const formatted = new Date(date).toISOString().split("T")[0];
     setSelectedDate(formatted);
     fetchUsers(formatted);
   };
@@ -142,7 +142,7 @@ export default function PaymentsPage() {
         <input
           type="date"
           value={selectedDate}
-          onChange={(e) => handleDateChange(new Date(e.target.value))}
+          onChange={(e) => handleDateChange(e.target.value)}
           className="w-full border border-gray-300 rounded px-3 py-2"
         />
       </div>
