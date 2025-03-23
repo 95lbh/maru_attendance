@@ -224,7 +224,7 @@ export default function PaymentsPage() {
           onClick={() => (window.location.href = "/")}
           className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
         >
-          🏠 메인으로
+          🏠 홈
         </button>
         <button
           onClick={() => (window.location.href = "/today")}

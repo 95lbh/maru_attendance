@@ -32,7 +32,7 @@ export default function Layout({ children }: { children: ReactNode }) {
               onClick={() => router.push('/')}
               className="bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600 text-sm"
             >
-              🏠 메인으로
+              🏠 홈
             </button>
           )}
           <button
