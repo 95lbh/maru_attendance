@@ -21,7 +21,6 @@ export default function PaymentsPage() {
   const [availableDates, setAvailableDates] = useState<string[]>([]);
   const [paidCount, setPaidCount] = useState(0);
   const [allUnpaidUsers, setAllUnpaidUsers] = useState<User[]>([]);
-  const [paidIds, setPaidIds] = useState<string[]>([]);
 
   useEffect(() => {
     const fetchDates = async () => {
@@ -51,8 +50,6 @@ export default function PaymentsPage() {
     } else {
       await setDoc(attendanceRef, { users: [], paid: [] });
     }
-
-    setPaidIds(paid);
 
     const userSnapshot = await getDocs(collection(db, "users"));
     const userList: User[] = [];
@@ -130,7 +127,6 @@ export default function PaymentsPage() {
         return updated;
       });
 
-      // 즉시 미납자 목록 갱신
       fetchAllUnpaid(availableDates);
     } catch (error) {
       console.error("입장료 상태 변경 오류:", error);
