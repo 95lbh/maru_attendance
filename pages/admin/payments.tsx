@@ -13,6 +13,7 @@ interface User {
   id: string;
   name: string;
   paid: boolean;
+  unpaidDates?: string[];
 }
 
 export default function PaymentsPage() {
@@ -77,22 +78,36 @@ export default function PaymentsPage() {
       id: docSnap.id,
       name: docSnap.data().name,
       paid: false,
+      unpaidDates: [],
     }));
 
-    const paidUsersSet = new Set<string>();
+    const unpaidUserMap: Record<string, string[]> = {};
 
     for (const date of dates) {
       const snap = await getDoc(doc(db, "attendance", date));
-      const paid: string[] = snap.exists() ? snap.data().paid || [] : [];
-      paid.forEach((id) => paidUsersSet.add(id));
+      if (!snap.exists()) continue;
+      const users: string[] = snap.data().users || [];
+      const paid: string[] = snap.data().paid || [];
+      users.forEach((uid) => {
+        if (!paid.includes(uid)) {
+          if (!unpaidUserMap[uid]) unpaidUserMap[uid] = [];
+          unpaidUserMap[uid].push(date);
+        }
+      });
     }
 
-    const unpaidUsers = allUsers.filter((user) => !paidUsersSet.has(user.id));
+    const unpaidUsers = allUsers
+      .filter((user) => unpaidUserMap[user.id])
+      .map((user) => ({ ...user, unpaidDates: unpaidUserMap[user.id] }));
+
     setAllUnpaidUsers(unpaidUsers);
   };
 
-  const handleDateChange = (date: string) => {
-    const formatted = new Date(date).toISOString().split("T")[0];
+  const handleDateChange = (date: string | Date) => {
+    const formatted =
+      typeof date === "string"
+        ? date
+        : new Date(date).toISOString().split("T")[0];
     setSelectedDate(formatted);
     fetchUsers(formatted);
   };
@@ -145,6 +160,12 @@ export default function PaymentsPage() {
           onChange={(e) => handleDateChange(e.target.value)}
           className="w-full border border-gray-300 rounded px-3 py-2"
         />
+        <button
+          onClick={() => handleDateChange(new Date())}
+          className="mt-2 px-3 py-1 text-sm bg-blue-100 hover:bg-blue-200 rounded"
+        >
+          📅 오늘 날짜로 이동
+        </button>
       </div>
 
       <p className="text-sm text-gray-600 mb-2">
@@ -182,7 +203,18 @@ export default function PaymentsPage() {
         </div>
         <ul className="list-disc list-inside text-sm text-red-600">
           {allUnpaidUsers.map((user) => (
-            <li key={user.id}>{user.name}</li>
+            <li key={user.id}>
+              {user.name} -{" "}
+              {user.unpaidDates?.map((date, idx) => (
+                <button
+                  key={idx}
+                  onClick={() => handleDateChange(date)}
+                  className="underline text-blue-700 hover:text-blue-900 mr-1"
+                >
+                  {date}
+                </button>
+              ))}
+            </li>
           ))}
         </ul>
       </div>
