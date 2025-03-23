@@ -10,8 +10,16 @@ import {
   arrayUnion,
   arrayRemove,
   deleteDoc,
+  query,
+  orderBy,
 } from "firebase/firestore";
 import { db } from "../firebaseConfig";
+
+interface User {
+  id: string;
+  name: string;
+  createdAt?: any;
+}
 
 const getToday = () => {
   const now = new Date();
@@ -19,11 +27,6 @@ const getToday = () => {
   const localDate = new Date(now.getTime() - offset);
   return localDate.toISOString().split("T")[0];
 };
-
-interface User {
-  id: string;
-  name: string;
-}
 
 const rainbowColors = [
   "bg-red-300",
@@ -44,8 +47,10 @@ export default function AttendancePage() {
   const [submittingId, setSubmittingId] = useState<string | null>(null);
   const [top7Map, setTop7Map] = useState<Record<string, number>>({});
   const [currentPage, setCurrentPage] = useState(1);
-  const usersPerPage = 10;
   const [isAdmin, setIsAdmin] = useState(false);
+  const usersPerPage = 10;
+
+  const today = getToday();
 
   useEffect(() => {
     if (typeof window !== "undefined" && localStorage.getItem("admin") === "true") {
@@ -53,13 +58,13 @@ export default function AttendancePage() {
     }
   }, []);
 
-  const today = getToday();
-
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
 
-      const userSnapshot = await getDocs(collection(db, "users"));
+      // 🔽 등록 순으로 정렬된 유저 목록 가져오기
+      const q = query(collection(db, "users"), orderBy("createdAt"));
+      const userSnapshot = await getDocs(q);
       const userList: User[] = [];
       userSnapshot.forEach((docSnap) => {
         userList.push({
@@ -69,6 +74,7 @@ export default function AttendancePage() {
       });
       setUsers(userList);
 
+      // 오늘 출석 여부
       const attendanceDoc = await getDoc(doc(db, "attendance", today));
       if (attendanceDoc.exists()) {
         const data = attendanceDoc.data();
@@ -77,6 +83,7 @@ export default function AttendancePage() {
         setAttendedIds([]);
       }
 
+      // 상위 랭킹 계산
       const attendanceSnapshot = await getDocs(collection(db, "attendance"));
       const countMap: Record<string, number> = {};
       attendanceSnapshot.forEach((docSnap) => {
@@ -114,6 +121,7 @@ export default function AttendancePage() {
     } else {
       await setDoc(attendanceRef, {
         users: [userId],
+        paid: [],
       });
     }
 
@@ -130,48 +138,38 @@ export default function AttendancePage() {
   };
 
   const deleteUser = async (userId: string) => {
-    const confirmDelete = window.confirm("정말 이 사용자를 삭제할까요?");
-    if (!confirmDelete) return;
+    if (!window.confirm("정말 이 사용자를 삭제할까요?")) return;
 
     try {
       await deleteDoc(doc(db, "users", userId));
 
       const attendanceSnapshot = await getDocs(collection(db, "attendance"));
-      const batchUpdates = attendanceSnapshot.docs.map(async (snap) => {
-        const ref = doc(db, "attendance", snap.id);
-        await updateDoc(ref, {
+      const batch = attendanceSnapshot.docs.map((snap) => {
+        return updateDoc(doc(db, "attendance", snap.id), {
           users: arrayRemove(userId),
         });
       });
 
-      await Promise.all(batchUpdates);
+      await Promise.all(batch);
 
       setUsers((prev) => prev.filter((u) => u.id !== userId));
       setAttendedIds((prev) => prev.filter((id) => id !== userId));
-
-      alert("사용자가 삭제되었습니다.");
-    } catch (error) {
-      console.error("삭제 오류:", error);
-      alert("사용자 삭제 중 오류가 발생했습니다.");
+      alert("삭제되었습니다.");
+    } catch (err) {
+      alert("삭제 중 오류 발생");
+      console.error(err);
     }
   };
 
   const handleAddUser = async () => {
     const trimmed = newName.trim();
-    if (!trimmed) {
-      alert("이름을 입력하세요.");
-      return;
-    }
-
-    const existing = users.find((u) => u.name === trimmed);
-    if (existing) {
-      alert("이미 등록된 이름입니다.");
-      return;
-    }
+    if (!trimmed) return alert("이름을 입력하세요.");
+    if (users.find((u) => u.name === trimmed)) return alert("이미 등록된 이름입니다.");
 
     const docRef = await addDoc(collection(db, "users"), {
       name: trimmed,
       paid: false,
+      createdAt: new Date(),
     });
 
     await handleAttendance(docRef.id);
@@ -190,19 +188,11 @@ export default function AttendancePage() {
     ? filteredUsers
     : filteredUsers.slice(startIndex, startIndex + usersPerPage);
 
-  useEffect(() => {
-    window.scrollTo(0, 0);
-  }, [currentPage]);
-
   return (
     <main className="max-w-lg mx-auto px-4 py-6">
       <h1 className="text-3xl font-bold text-center text-blue-600 mb-4">
         📋 출석 체크
       </h1>
-
-      <div className="bg-yellow-100 text-center font-bold text-gray-800 p-3 rounded mb-0 whitespace-pre-line shadow">
-        📢 공지사항
-      </div>
 
       <div className="bg-yellow-100 text-left font-bold text-gray-800 p-3 rounded mb-6 whitespace-pre-line shadow">
         ❤ 마루 스포츠 출석부입니당{"\n"}
@@ -210,27 +200,23 @@ export default function AttendancePage() {
         💛 국민은행 415602 96 116296 (송호영)
       </div>
 
-      <h3 className="font-semibold mb-2">
-        🙋‍♂️ 검색해서 빠르게 자기 이름 찾고 게임 ㄱㄱ
-      </h3>
+      <h3 className="font-semibold mb-2">🙋‍♂️ 이름 검색</h3>
       <input
         type="text"
         value={searchTerm}
         onChange={(e) => setSearchTerm(e.target.value)}
         placeholder="이름 검색"
-        className="w-full border border-gray-300 rounded px-4 py-2 mb-4 focus:outline-none focus:ring-2 focus:ring-blue-400"
+        className="w-full border rounded px-4 py-2 mb-4 focus:ring-2 focus:ring-blue-400"
       />
 
       <div className="mb-6">
-        <h3 className="font-semibold mb-2">
-          🙋‍♀️ 처음 오셨거나 이름이 없으면 아래에서 추가!
-        </h3>
+        <h3 className="font-semibold mb-2">🙋‍♀️ 처음 오셨다면 이름 등록!</h3>
         <input
           type="text"
           value={newName}
           onChange={(e) => setNewName(e.target.value)}
           placeholder="이름 입력"
-          className="w-full border border-gray-300 rounded px-4 py-2 mb-2 focus:outline-none focus:ring-2 focus:ring-blue-400 dark:bg-gray-800 dark:text-white"
+          className="w-full border rounded px-4 py-2 mb-2 dark:bg-gray-800 dark:text-white"
         />
         <button
           onClick={handleAddUser}
@@ -313,9 +299,7 @@ export default function AttendancePage() {
               ))}
 
               <button
-                onClick={() =>
-                  setCurrentPage((p) => Math.min(p + 1, totalPages))
-                }
+                onClick={() => setCurrentPage((p) => Math.min(p + 1, totalPages))}
                 disabled={currentPage === totalPages}
                 className="px-3 py-1 rounded bg-gray-200 hover:bg-gray-300 disabled:opacity-50"
               >
@@ -326,21 +310,19 @@ export default function AttendancePage() {
         </>
       )}
 
-<footer className="mt-10 pt-6 border-t text-center space-x-4">
+      <footer className="mt-10 pt-6 border-t text-center space-x-4">
         <button
           onClick={() => (window.location.href = "/today")}
           className="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700"
         >
           📅 오늘 출석자
         </button>
-
         <button
           onClick={() => (window.location.href = "/ranking")}
           className="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700"
         >
           🏆 출석 랭킹
         </button>
-
         <div className="mt-4 space-x-4">
           <button
             onClick={() => (window.location.href = "/admin/login")}
@@ -348,7 +330,6 @@ export default function AttendancePage() {
           >
             🔐 관리자
           </button>
-
           {isAdmin && (
             <button
               onClick={() => (window.location.href = "/admin/payments")}
@@ -358,7 +339,6 @@ export default function AttendancePage() {
             </button>
           )}
         </div>
-
         <p className="text-xs text-gray-400 dark:text-gray-500 mt-6 text-right">
           Made by <span className="font-semibold">🏸Byeong Heon</span> v1.0.0
         </p>
