@@ -200,12 +200,6 @@ export default function PaymentsPage() {
         >
           📅 오늘 출석자
         </button>
-        <button
-          onClick={() => (window.location.href = "/ranking")}
-          className="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700"
-        >
-          🏆 출석 랭킹
-        </button>
       </footer>
     </main>
   );
