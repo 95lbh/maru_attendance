@@ -17,6 +17,7 @@ const getToday = () => {
 export default function TodayAttendancePage() {
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState('');
   const today = getToday();
 
   useEffect(() => {
@@ -48,23 +49,35 @@ export default function TodayAttendancePage() {
     fetchData();
   }, [today]);
 
+  const filteredUsers = users.filter((user) =>
+    user.name.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
   return (
     <main className="max-w-lg mx-auto px-4 py-6">
       <h1 className="text-2xl font-bold text-center text-blue-600 mb-4">
         ✅ 오늘 출석한 사람
       </h1>
 
+      <input
+        type="text"
+        value={searchTerm}
+        onChange={(e) => setSearchTerm(e.target.value)}
+        placeholder="이름 검색"
+        className="w-full border px-4 py-2 rounded mb-4"
+      />
+
       {loading ? (
         <p className="text-center text-gray-500">로딩 중...</p>
-      ) : users.length === 0 ? (
+      ) : filteredUsers.length === 0 ? (
         <p className="text-center text-gray-400">출석자가 없습니다.</p>
       ) : (
         <>
           <p className="text-sm text-gray-600 dark:text-gray-400 text-center mb-2 font-bold">
-            총 {users.length}명 출석
+            총 {filteredUsers.length}명 출석
           </p>
           <ul className="space-y-2">
-            {users.map((user) => (
+            {filteredUsers.map((user) => (
               <li
                 key={user.id}
                 className="p-3 bg-white dark:bg-gray-800 dark:text-white rounded shadow text-center"

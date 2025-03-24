@@ -23,10 +23,18 @@ export default function PaymentsPage() {
   const [paidCount, setPaidCount] = useState(0);
   const [allUnpaidUsers, setAllUnpaidUsers] = useState<User[]>([]);
 
+  const [searchTerm, setSearchTerm] = useState("");
+  const filteredUsers = users.filter((user) =>
+    user.name.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
   useEffect(() => {
     const fetchDates = async () => {
       const snapshot = await getDocs(collection(db, "attendance"));
-      const dates = snapshot.docs.map((doc) => doc.id).sort().reverse();
+      const dates = snapshot.docs
+        .map((doc) => doc.id)
+        .sort()
+        .reverse();
       setAvailableDates(dates);
       if (dates.length > 0) {
         setSelectedDate(dates[0]);
@@ -150,7 +158,9 @@ export default function PaymentsPage() {
 
   return (
     <main className="max-w-xl mx-auto px-4 py-8">
-      <h1 className="text-2xl font-bold mb-6 text-center">💰 입장료 납부 관리</h1>
+      <h1 className="text-2xl font-bold mb-6 text-center">
+        💰 입장료 납부 관리
+      </h1>
 
       <div className="mb-6">
         <label className="block mb-2 font-medium">날짜 선택</label>
@@ -169,11 +179,20 @@ export default function PaymentsPage() {
       </div>
 
       <p className="text-sm text-gray-600 mb-2">
-        납부자 수: <strong>{paidCount}</strong>명 / 총 <strong>{users.length}</strong>명
+        납부자 수: <strong>{paidCount}</strong>명 / 총{" "}
+        <strong>{users.length}</strong>명
       </p>
 
+      <input
+        type="text"
+        value={searchTerm}
+        onChange={(e) => setSearchTerm(e.target.value)}
+        placeholder="이름 검색"
+        className="w-full border px-4 py-2 mb-4 rounded"
+      />
+
       <ul className="space-y-3">
-        {users.map((user) => (
+        {filteredUsers.map((user) => (
           <li
             key={user.id}
             className="flex justify-between items-center p-3 bg-white rounded shadow dark:bg-gray-800 dark:text-white"
