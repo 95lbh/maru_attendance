@@ -341,7 +341,7 @@ export default function AttendancePage() {
           )}
         </div>
         <p className="text-xs text-gray-400 dark:text-gray-500 mt-6 text-right">
-          Made by <span className="font-semibold">🏸Byeong Heon</span> v1.0.1
+          Made by <span className="font-semibold">🏸Byeong Heon</span> v1.0.2
         </p>
       </footer>
     </main>
