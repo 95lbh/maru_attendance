@@ -156,6 +156,13 @@ export default function PaymentsPage() {
     }
   };
 
+  const getTodayKST = () => {
+    const now = new Date();
+    const offset = now.getTimezoneOffset() * 60000;
+    const kst = new Date(now.getTime() - offset + 9 * 60 * 60 * 1000); // KST 보정
+    return kst.toISOString().split("T")[0];
+  };
+
   return (
     <main className="max-w-xl mx-auto px-4 py-8">
       <h1 className="text-2xl font-bold mb-6 text-center">
@@ -171,7 +178,7 @@ export default function PaymentsPage() {
           className="w-full border border-gray-300 rounded px-3 py-2"
         />
         <button
-          onClick={() => handleDateChange(new Date())}
+          onClick={() => handleDateChange(getTodayKST())}
           className="mt-2 px-3 py-1 text-sm bg-blue-100 hover:bg-blue-200 rounded"
         >
           📅 오늘 날짜로 이동
