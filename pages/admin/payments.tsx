@@ -158,8 +158,9 @@ export default function PaymentsPage() {
 
   const getTodayKST = () => {
     const now = new Date();
-    const offset = now.getTimezoneOffset() * 60000;
-    const kst = new Date(now.getTime() - offset + 9 * 60 * 60 * 1000); // KST 보정
+    const kst = new Date(
+      now.getTime() + now.getTimezoneOffset() * 60000 + 9 * 60 * 60 * 1000
+    ); // KST 보정
     return kst.toISOString().split("T")[0];
   };
 
