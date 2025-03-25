@@ -158,10 +158,11 @@ export default function PaymentsPage() {
 
   const getTodayKST = () => {
     const now = new Date();
-    const kst = new Date(
-      now.getTime() + now.getTimezoneOffset() * 60000 + 9 * 60 * 60 * 1000
-    ); // KST 보정
-    return kst.toISOString().split("T")[0];
+    const kst = new Date(now.getTime() + 9 * 60 * 60 * 1000); // KST = UTC+9
+    const year = kst.getUTCFullYear();
+    const month = String(kst.getUTCMonth() + 1).padStart(2, "0"); // 월은 0부터 시작
+    const day = String(kst.getUTCDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
   };
 
   return (
