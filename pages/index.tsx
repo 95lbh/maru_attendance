@@ -54,7 +54,10 @@ export default function AttendancePage() {
   const today = getToday();
 
   useEffect(() => {
-    if (typeof window !== "undefined" && localStorage.getItem("admin") === "true") {
+    if (
+      typeof window !== "undefined" &&
+      localStorage.getItem("admin") === "true"
+    ) {
       setIsAdmin(true);
     }
   }, []);
@@ -165,7 +168,8 @@ export default function AttendancePage() {
   const handleAddUser = async () => {
     const trimmed = newName.trim();
     if (!trimmed) return alert("이름을 입력하세요.");
-    if (users.find((u) => u.name === trimmed)) return alert("이미 등록된 이름입니다.");
+    if (users.find((u) => u.name === trimmed))
+      return alert("이미 등록된 이름입니다.");
 
     const docRef = await addDoc(collection(db, "users"), {
       name: trimmed,
@@ -300,7 +304,9 @@ export default function AttendancePage() {
               ))}
 
               <button
-                onClick={() => setCurrentPage((p) => Math.min(p + 1, totalPages))}
+                onClick={() =>
+                  setCurrentPage((p) => Math.min(p + 1, totalPages))
+                }
                 disabled={currentPage === totalPages}
                 className="px-3 py-1 rounded bg-gray-200 hover:bg-gray-300 disabled:opacity-50"
               >
@@ -324,6 +330,7 @@ export default function AttendancePage() {
         >
           🏆 출석 랭킹
         </button>
+
         <div className="mt-4 space-x-4">
           <button
             onClick={() => (window.location.href = "/admin/login")}
@@ -331,17 +338,30 @@ export default function AttendancePage() {
           >
             🔐 관리자
           </button>
+
           {isAdmin && (
-            <button
-              onClick={() => (window.location.href = "/admin/payments")}
-              className="bg-amber-600 text-white px-4 py-2 rounded hover:bg-amber-700"
-            >
-              💰 입장료 관리
-            </button>
+            <>
+              <button
+                onClick={() => (window.location.href = "/admin/payments")}
+                className="bg-amber-600 text-white px-4 py-2 rounded hover:bg-amber-700"
+              >
+                💰 입장료 관리
+              </button>
+
+              <button
+                onClick={() =>
+                  (window.location.href = "/admin/manual-attendance")
+                }
+                className="bg-pink-600 text-white px-4 py-2 rounded hover:bg-pink-700"
+              >
+                💼 수동 출석
+              </button>
+            </>
           )}
         </div>
+
         <p className="text-xs text-gray-400 dark:text-gray-500 mt-6 text-right">
-          Made by <span className="font-semibold">🏸Byeong Heon</span> v1.0.3
+          Made by <span className="font-semibold">🏸Byeong Heon</span> v1.1.0
         </p>
       </footer>
     </main>
