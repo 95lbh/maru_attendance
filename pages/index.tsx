@@ -316,52 +316,56 @@ export default function AttendancePage() {
           )}
         </>
       )}
-
-      <footer className="mt-10 pt-6 border-t text-center space-x-4">
-        <button
-          onClick={() => (window.location.href = "/today")}
-          className="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700"
-        >
-          📅 오늘 출석자
-        </button>
-        <button
-          onClick={() => (window.location.href = "/ranking")}
-          className="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700"
-        >
-          🏆 출석 랭킹
-        </button>
-
-        <div className="mt-4 space-x-4">
+      <footer className="mt-10 pt-6 border-t text-center">
+        <div className="flex flex-wrap justify-center gap-3 mb-3">
+          <button
+            onClick={() => (window.location.href = "/today")}
+            className="w-32 bg-indigo-600 text-white py-2 rounded hover:bg-indigo-700"
+          >
+            📅 오늘 출석자
+          </button>
+          <button
+            onClick={() => (window.location.href = "/ranking")}
+            className="w-32 bg-purple-600 text-white py-2 rounded hover:bg-purple-700"
+          >
+            🏆 출석 랭킹
+          </button>
           <button
             onClick={() => (window.location.href = "/admin/login")}
-            className="bg-gray-700 text-white px-4 py-2 rounded hover:bg-gray-800"
+            className="w-32 bg-gray-700 text-white py-2 rounded hover:bg-gray-800"
           >
             🔐 관리자
           </button>
-
           {isAdmin && (
             <>
               <button
                 onClick={() => (window.location.href = "/admin/payments")}
-                className="bg-amber-600 text-white px-4 py-2 rounded hover:bg-amber-700"
+                className="w-32 bg-amber-600 text-white py-2 rounded hover:bg-amber-700"
               >
-                💰 입장료 관리
+                💰 입장료
               </button>
-
               <button
                 onClick={() =>
                   (window.location.href = "/admin/manual-attendance")
                 }
-                className="bg-pink-600 text-white px-4 py-2 rounded hover:bg-pink-700"
+                className="w-32 bg-pink-600 text-white py-2 rounded hover:bg-pink-700"
               >
                 💼 수동 출석
+              </button>
+              <button
+                onClick={() =>
+                  (window.location.href = "/admin/inactive-members")
+                }
+                className="w-32 bg-red-600 text-white py-2 rounded hover:bg-red-700"
+              >
+                🛠 출석 관리
               </button>
             </>
           )}
         </div>
 
-        <p className="text-xs text-gray-400 dark:text-gray-500 mt-6 text-right">
-          Made by <span className="font-semibold">🏸Byeong Heon</span> v1.1.0
+        <p className="text-xs text-gray-400 dark:text-gray-500 mt-4 text-right">
+          Made by <span className="font-semibold">🏸Byeong Heon</span> v1.2.0
         </p>
       </footer>
     </main>

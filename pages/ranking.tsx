@@ -24,6 +24,7 @@ export default function RankingPage() {
   const [rankData, setRankData] = useState<Record<string, number>>({});
   const [range, setRange] = useState<RangeType>("all");
   const [loading, setLoading] = useState(true);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   const rangeStartDate =
     range === "7days"
@@ -31,6 +32,15 @@ export default function RankingPage() {
       : range === "30days"
       ? getDateNDaysAgo(30)
       : null;
+
+  useEffect(() => {
+    if (
+      typeof window !== "undefined" &&
+      localStorage.getItem("admin") === "true"
+    ) {
+      setIsAdmin(true);
+    }
+  }, []);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -62,6 +72,7 @@ export default function RankingPage() {
 
     fetchData();
   }, [range]);
+
   const sortedUsers = Object.entries(rankData)
     .sort((a, b) => b[1] - a[1])
     .map(([userId, count]) => {
@@ -76,9 +87,18 @@ export default function RankingPage() {
 
   return (
     <main className="max-w-xl mx-auto px-4 py-6">
-      <h1 className="text-3xl font-bold text-center text-blue-600 mb-6">
-        🏆 출석 랭킹
-      </h1>
+      {/* 상단 헤더 및 관리자 전용 버튼 */}
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-3xl font-bold text-blue-600">🏆 출석 랭킹</h1>
+        {isAdmin && (
+          <button
+            onClick={() => router.push("/admin/inactive-members")}
+            className="bg-red-600 text-white px-3 py-1 rounded hover:bg-red-700 text-sm"
+          >
+            🛠 출석 관리
+          </button>
+        )}
+      </div>
 
       {/* 랭킹 필터 버튼 */}
       <div className="flex justify-center gap-2 mb-6">
