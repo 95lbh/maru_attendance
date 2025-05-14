@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
 import {
   getDocs,
-  getDoc,
   doc,
   deleteDoc,
   updateDoc,
